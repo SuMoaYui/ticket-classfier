@@ -87,12 +87,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: security-scan
     environment: production
+    # Solo ejecutar si el secreto está configurado para evitar fallos en repos sin AWS
+    if: ${{ secrets.AWS_ROLE_ARN != '' }}
 
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::ACCOUNT_ID:role/github-actions-ecs-deploy
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Download task definition

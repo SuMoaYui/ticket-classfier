@@ -25,6 +25,7 @@ ENV NODE_ENV=production
 WORKDIR /usr/src/app
 
 # Install native dependencies required by better-sqlite3 in alpine
+# hadolint ignore=DL3018
 RUN apk add --no-cache sqlite-libs
 
 # Create directories for DB and Logs with correct permissions
