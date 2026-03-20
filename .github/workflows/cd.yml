@@ -87,8 +87,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: security-scan
     environment: production
-    # Solo ejecutar si el secreto está configurado para evitar fallos en repos sin AWS
-    if: ${{ secrets.AWS_ROLE_ARN != '' }}
+    # Solo ejecutar si se habilita la variable de repositorio en GitHub
+    if: ${{ vars.ENABLE_AWS_DEPLOY == 'true' }}
 
     steps:
       - name: Configure AWS credentials
