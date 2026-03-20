@@ -44,16 +44,32 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // ─── Health check (no auth required) ────────────────────────────────────────
 app.get('/api/v1/health', (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: {
-      status: 'healthy',
-      version: '1.0.0',
-      llmMode: config.llmMode,
-      uptime: Math.floor(process.uptime()),
-      timestamp: new Date().toISOString(),
-    },
-  });
+  try {
+    const db = getDatabase();
+    // Verify database connection is alive
+    db.prepare('SELECT 1').get();
+
+    res.json({
+      success: true,
+      data: {
+        status: 'healthy',
+        database: 'connected',
+        version: '1.0.0',
+        llmMode: config.llmMode,
+        uptime: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('Health check failed', { error: (error as Error).message });
+    res.status(503).json({
+      success: false,
+      error: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'Database connection failed',
+      },
+    });
+  }
 });
 
 // ─── API routes ─────────────────────────────────────────────────────────────

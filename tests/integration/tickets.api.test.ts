@@ -37,11 +37,12 @@ describe('Tickets API Integration', () => {
 
   // ─── Health Check ─────────────────────────────────────────────────────────
   describe('GET /api/v1/health', () => {
-    it('should return healthy status without auth', async () => {
+    it('should return healthy status and database connection without auth', async () => {
       const res = await request(app).get(`${BASE}/health`);
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.status).toBe('healthy');
+      expect(res.body.data.database).toBe('connected');
       expect(res.body.data.llmMode).toBe('mock');
     });
   });

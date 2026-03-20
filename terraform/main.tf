@@ -1,3 +1,13 @@
+terraform {
+  backend "s3" {
+    bucket         = "ticket-classifier-tfstate"
+    key            = "state/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "ticket-classifier-tfstate-lock"
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
@@ -60,6 +70,13 @@ resource "aws_security_group" "alb" {
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -169,6 +186,24 @@ resource "aws_iam_role_policy_attachment" "ecs_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_execution" {
+  name = "${var.project_name}-ecs-execution-policy"
+  role = aws_iam_role.ecs_execution.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "secretsmanager:GetSecretValue"
+      ]
+      Resource = [
+        aws_secretsmanager_secret.anthropic_key.arn,
+        aws_secretsmanager_secret.api_key.arn
+      ]
+    }]
+  })
+}
+
 resource "aws_iam_role" "ecs_task" {
   name = "${var.project_name}-ecs-task-role"
   assume_role_policy = jsonencode({
@@ -198,6 +233,25 @@ resource "aws_iam_role_policy" "ecs_task_efs" {
       Resource = aws_efs_file_system.sqlite_data.arn
     }]
   })
+}
+
+# --- Secrets Manager ---
+resource "aws_secretsmanager_secret" "anthropic_key" {
+  name = "${var.project_name}-anthropic-api-key"
+}
+
+resource "aws_secretsmanager_secret_version" "anthropic_key" {
+  secret_id     = aws_secretsmanager_secret.anthropic_key.id
+  secret_string = var.anthropic_api_key
+}
+
+resource "aws_secretsmanager_secret" "api_key" {
+  name = "${var.project_name}-api-master-key"
+}
+
+resource "aws_secretsmanager_secret_version" "api_key" {
+  secret_id     = aws_secretsmanager_secret.api_key.id
+  secret_string = var.api_master_key
 }
 
 # --- CloudWatch Logs ---
@@ -232,10 +286,36 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
+resource "aws_acm_certificate" "cert" {
+  domain_name       = var.domain_name
+  validation_method = "DNS"
+  
+  tags = {
+    Name = "${var.project_name}-cert"
+  }
+}
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.cert.arn
 
   default_action {
     type             = "forward"
@@ -286,9 +366,14 @@ resource "aws_ecs_task_definition" "app" {
       { name = "LLM_MODE", value = var.llm_mode }
     ]
     secrets = [
-      # In production, pull ANTHROPIC_API_KEY from SecretsManager or SSM
-      # For now passing via environment variable logic if set, simplified array: 
-      # (Ideally we'd use secretStore)
+      {
+        name      = "ANTHROPIC_API_KEY"
+        valueFrom = aws_secretsmanager_secret.anthropic_key.arn
+      },
+      {
+        name      = "API_KEY"
+        valueFrom = aws_secretsmanager_secret.api_key.arn
+      }
     ]
     mountPoints = [{
       sourceVolume  = "sqlite-data"
