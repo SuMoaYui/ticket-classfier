@@ -3,18 +3,24 @@ import config from '../config/index.js';
 
 const { combine, timestamp, printf, colorize, json } = winston.format;
 
+interface LogMeta {
+  customer?: string;
+  customer_email?: string;
+  [key: string]: unknown;
+}
+
 const devFormat = combine(
   colorize(),
   timestamp({ format: 'HH:mm:ss' }),
   printf(({ timestamp, level, message, ...meta }) => {
     // Obfuscate PII in metadata stringified output
-    const safeMeta = maskPii(meta);
+    const safeMeta = maskPii(meta as LogMeta);
     const metaStr = Object.keys(safeMeta).length ? ` ${JSON.stringify(safeMeta)}` : '';
-    return `${timestamp} [${level}]: ${message}${metaStr}`;
+    return `${timestamp as string} [${level}]: ${message as string}${metaStr}`;
   })
 );
 
-function maskPii(obj) {
+function maskPii(obj: LogMeta): LogMeta {
   if (!obj) return obj;
   const clone = { ...obj };
   // Mask email addresses
@@ -27,20 +33,20 @@ function maskPii(obj) {
   return clone;
 }
 
-function maskEmail(email) {
+function maskEmail(email: string): string {
   if (typeof email !== 'string') return email;
   const parts = email.split('@');
   if (parts.length !== 2) return email;
   const [name, domain] = parts;
-  if (name.length <= 2) return `***@${domain}`;
-  return `${name[0]}***${name[name.length - 1]}@${domain}`;
+  if (name!.length <= 2) return `***@${domain}`;
+  return `${name![0]}***${name![name!.length - 1]}@${domain}`;
 }
 
 const prodFormat = combine(
   timestamp(),
   winston.format((info) => {
     // Mask PII before passing to json formatter
-    return maskPii(info);
+    return maskPii(info as LogMeta) as winston.Logform.TransformableInfo;
   })(),
   json()
 );

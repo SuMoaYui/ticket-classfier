@@ -1,11 +1,21 @@
 import EventEmitter from 'events';
 import logger from '../../utils/logger.js';
 
+/** Represents a job in the queue. */
+export interface Job {
+  id: string;
+  payload: Record<string, unknown>;
+  status: 'pending' | 'completed';
+  createdAt: number;
+}
+
 /**
  * In-memory Queue System (Simulates a Message Broker like BullMQ/Redis)
  * Used to decouple fast HTTP requests from slow LLM background tasks.
  */
 class InMemoryQueue extends EventEmitter {
+  private jobs: Map<string, Job>;
+
   constructor() {
     super();
     this.jobs = new Map();
@@ -13,10 +23,8 @@ class InMemoryQueue extends EventEmitter {
 
   /**
    * Add a new job to the queue.
-   * @param {string} id - Job/Ticket ID
-   * @param {object} payload - Job data
    */
-  addConfiguredJob(id, payload) {
+  addConfiguredJob(id: string, payload: Record<string, unknown>): void {
     logger.debug(`Job enqueued for ticket ${id}`);
     this.jobs.set(id, { id, payload, status: 'pending', createdAt: Date.now() });
 
@@ -26,11 +34,11 @@ class InMemoryQueue extends EventEmitter {
     });
   }
 
-  getJob(id) {
+  getJob(id: string): Job | undefined {
     return this.jobs.get(id);
   }
 
-  completeJob(id) {
+  completeJob(id: string): void {
     const job = this.jobs.get(id);
     if (job) job.status = 'completed';
     this.jobs.delete(id); // Cleanup

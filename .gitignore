@@ -3,3 +3,4 @@ node_modules/
 *.db
 logs/
 dist/
+Me_file.txt

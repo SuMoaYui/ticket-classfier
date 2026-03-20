@@ -1,10 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import config from '../../config/index.js';
 import logger from '../../utils/logger.js';
+import type { ClassificationResult } from './mock-classifier.js';
 
-let client = null;
+let client: Anthropic | null = null;
 
-function getClient() {
+function getClient(): Anthropic {
   if (!client) {
     if (!config.anthropic.apiKey) {
       throw new Error(
@@ -42,13 +43,18 @@ Classification guidelines:
 
 Handle tickets in any language (Spanish, English, etc.).`;
 
+interface AnthropicParsedResponse {
+  urgency?: string;
+  sentiment?: string;
+  department?: string;
+  confidence?: number;
+  reasoning?: string;
+}
+
 /**
  * Classify a ticket using Anthropic Claude.
- * @param {string} subject - Ticket subject
- * @param {string} body - Ticket body
- * @returns {Promise<object>} Classification result
  */
-export async function classifyWithAnthropic(subject, body) {
+export async function classifyWithAnthropic(subject: string, body: string): Promise<ClassificationResult> {
   const anthropic = getClient();
 
   const userMessage = `Classify this support ticket:
@@ -71,11 +77,11 @@ Body: ${body}
       messages: [{ role: 'user', content: userMessage }],
     });
 
-    const text = response.content[0]?.text || '';
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
     logger.debug('Anthropic raw response', { text });
 
     // Parse JSON from response
-    const parsed = JSON.parse(text.trim());
+    const parsed: AnthropicParsedResponse = JSON.parse(text.trim());
 
     // Validate and normalize
     return {
@@ -83,10 +89,11 @@ Body: ${body}
       sentiment: normalizeEnum(parsed.sentiment, ['angry', 'frustrated', 'neutral', 'satisfied'], 'neutral'),
       department: normalizeEnum(parsed.department, ['billing', 'engineering', 'sales', 'support', 'hr', 'general'], 'general'),
       confidence: typeof parsed.confidence === 'number' ? Math.round(parsed.confidence * 100) / 100 : 0.5,
-      reasoning: parsed.reasoning || 'No reasoning provided.',
+      reasoning: parsed.reasoning ?? 'No reasoning provided.',
     };
   } catch (error) {
-    logger.error('Anthropic classification failed', { error: error.message });
+    const err = error as Error;
+    logger.error('Anthropic classification failed', { error: err.message });
 
     // Return a safe fallback
     return {
@@ -94,12 +101,12 @@ Body: ${body}
       sentiment: 'neutral',
       department: 'general',
       confidence: 0.0,
-      reasoning: `Classification failed: ${error.message}. Defaulting to neutral values.`,
+      reasoning: `Classification failed: ${err.message}. Defaulting to neutral values.`,
     };
   }
 }
 
-function normalizeEnum(value, allowed, fallback) {
+function normalizeEnum(value: string | undefined, allowed: string[], fallback: string): string {
   if (typeof value === 'string' && allowed.includes(value.toLowerCase())) {
     return value.toLowerCase();
   }

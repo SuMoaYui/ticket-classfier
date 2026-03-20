@@ -1,17 +1,18 @@
-import { ZodError } from 'zod';
+import type { Request, Response, NextFunction } from 'express';
+import { ZodError, type ZodSchema } from 'zod';
 
 /**
  * Creates a validation middleware for a given Zod schema.
  * Validates req.body and attaches the parsed result to req.validatedBody.
  */
-export function validate(schema) {
-  return (req, res, next) => {
+export function validate<T>(schema: ZodSchema<T>) {
+  return (req: Request, res: Response, next: NextFunction): void => {
     try {
       req.validatedBody = schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
@@ -22,6 +23,7 @@ export function validate(schema) {
             })),
           },
         });
+        return;
       }
       next(error);
     }

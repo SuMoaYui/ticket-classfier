@@ -4,7 +4,7 @@ npm-debug.log
 .gitignore
 .env
 tests
-vitest.config.js
+vitest.config.ts
 README.md
 data/
 logs/

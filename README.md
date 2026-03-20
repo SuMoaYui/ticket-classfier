@@ -1,7 +1,7 @@
 # 🎫 Sistema Inteligente de Clasificación de Tickets y Soporte
 
-![CI](https://github.com/<owner>/ticket-classifier/actions/workflows/ci.yml/badge.svg)
-![CD](https://github.com/<owner>/ticket-classifier/actions/workflows/cd.yml/badge.svg)
+![CI](https://github.com/SuMoaYui/ticket-classfier/actions/workflows/ci.yml/badge.svg)
+![CD](https://github.com/SuMoaYui/ticket-classfier/actions/workflows/cd.yml/badge.svg)
 
 API backend corporativa que recibe solicitudes de clientes, las clasifica automáticamente mediante un LLM (urgencia, sentimiento, departamento) y las asigna al equipo correcto.
 
@@ -163,5 +163,5 @@ src/
 │   ├── llm/          # Clasificadores (mock + Anthropic)
 │   └── rules/        # Motor de reglas de negocio
 ├── utils/            # Logger (Winston)
-└── app.js            # Bootstrap Express
+└── app.ts            # Bootstrap Express
 ```

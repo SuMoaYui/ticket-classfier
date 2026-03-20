@@ -1,17 +1,13 @@
 import config from '../../config/index.js';
-import { classifyWithMock } from './mock-classifier.js';
+import { classifyWithMock, type ClassificationResultWithMeta } from './mock-classifier.js';
 import { classifyWithAnthropic } from './anthropic-classifier.js';
 import logger from '../../utils/logger.js';
 
 /**
  * Unified classifier facade.
  * Routes to mock or Anthropic based on LLM_MODE configuration.
- *
- * @param {string} subject - Ticket subject line
- * @param {string} body - Ticket body text
- * @returns {Promise<{urgency: string, sentiment: string, department: string, confidence: number, reasoning: string}>}
  */
-export async function classifyTicket(subject, body) {
+export async function classifyTicket(subject: string, body: string): Promise<ClassificationResultWithMeta> {
   const mode = config.llmMode;
 
   logger.info(`Classifying ticket with mode: ${mode}`, {

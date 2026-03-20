@@ -3,7 +3,8 @@ import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
 
 const window = new JSDOM('').window;
-const purify = DOMPurify(window);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const purify = DOMPurify(window as any);
 
 /**
  * Schema for creating a new support ticket.
@@ -45,3 +46,7 @@ export const listTicketsQuerySchema = z.object({
   sort: z.enum(['created_at', 'urgency', 'priority_score']).optional().default('created_at'),
   order: z.enum(['asc', 'desc']).optional().default('desc'),
 });
+
+/** Inferred types from our Zod schemas */
+export type CreateTicketInput = z.infer<typeof createTicketSchema>;
+export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;

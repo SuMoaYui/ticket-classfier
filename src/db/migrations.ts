@@ -1,7 +1,9 @@
+import type { Database } from 'better-sqlite3';
+
 /**
  * Database migrations — creates tables if they don't exist.
  */
-export function runMigrations(db) {
+export function runMigrations(db: Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS tickets (
       id TEXT PRIMARY KEY,
@@ -36,7 +38,7 @@ export function runMigrations(db) {
 
   // Seed a default development API key if none exists (ONLY IN DEVELOPMENT)
   if (process.env.NODE_ENV === 'development') {
-    const existing = db.prepare('SELECT COUNT(*) as count FROM api_keys').get();
+    const existing = db.prepare('SELECT COUNT(*) as count FROM api_keys').get() as { count: number };
     if (existing.count === 0) {
       db.prepare(
         'INSERT INTO api_keys (key, name) VALUES (?, ?)'

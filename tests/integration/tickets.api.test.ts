@@ -7,13 +7,13 @@ const API_KEY = 'test-api-key-123';
 const BASE = '/api/v1';
 
 describe('Tickets API Integration', () => {
-  let createdTicketId;
+  let createdTicketId: string;
 
   beforeAll(() => {
     // Initialize the in-memory test database
     const db = getDatabase();
     // Ensure the test API key exists
-    const existing = db.prepare('SELECT COUNT(*) as count FROM api_keys WHERE key = ?').get(API_KEY);
+    const existing = db.prepare('SELECT COUNT(*) as count FROM api_keys WHERE key = ?').get(API_KEY) as { count: number };
     if (existing.count === 0) {
       db.prepare('INSERT INTO api_keys (key, name) VALUES (?, ?)').run(API_KEY, 'Test Key');
     }
@@ -24,7 +24,7 @@ describe('Tickets API Integration', () => {
   });
 
   // Helper to wait for background jobs to finish by polling the API
-  const waitForClassification = async (id, maxRetries = 10) => {
+  const waitForClassification = async (id: string, maxRetries = 10) => {
     for (let i = 0; i < maxRetries; i++) {
       const res = await request(app).get(`${BASE}/tickets/${id}`).set('X-API-Key', API_KEY);
       if (res.body.data && res.body.data.status !== 'pending') {
@@ -202,7 +202,7 @@ describe('Tickets API Integration', () => {
         .set('X-API-Key', API_KEY);
 
       expect(res.status).toBe(200);
-      res.body.data.forEach((ticket) => {
+      res.body.data.forEach((ticket: { urgency: string }) => {
         expect(ticket.urgency).toBe('critical');
       });
     });
@@ -213,7 +213,7 @@ describe('Tickets API Integration', () => {
         .set('X-API-Key', API_KEY);
 
       expect(res.status).toBe(200);
-      res.body.data.forEach((ticket) => {
+      res.body.data.forEach((ticket: { department: string }) => {
         expect(ticket.department).toBe('billing');
       });
     });

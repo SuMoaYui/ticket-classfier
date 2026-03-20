@@ -1,5 +1,6 @@
+import type { Request, Response, NextFunction } from 'express';
 import { TicketService } from './ticket.service.js';
-import { listTicketsQuerySchema } from './ticket.schema.js';
+import { listTicketsQuerySchema, type CreateTicketInput } from './ticket.schema.js';
 import logger from '../../utils/logger.js';
 
 const service = new TicketService();
@@ -11,9 +12,9 @@ export class TicketController {
   /**
    * POST /tickets — Create and classify a new ticket.
    */
-  async create(req, res, next) {
+  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ticket = await service.createTicket(req.validatedBody);
+      const ticket = await service.createTicket(req.validatedBody as CreateTicketInput);
 
       res.status(202).json({
         success: true,
@@ -28,7 +29,7 @@ export class TicketController {
   /**
    * GET /tickets — List tickets with optional filters.
    */
-  async list(req, res, next) {
+  async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const query = listTicketsQuerySchema.parse(req.query);
       const result = service.listTickets(query);
@@ -51,18 +52,20 @@ export class TicketController {
   /**
    * GET /tickets/:id — Get a single ticket by ID.
    */
-  async getById(req, res, next) {
+  async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ticket = service.getTicket(req.params.id);
+      const ticketId = req.params.id as string;
+      const ticket = service.getTicket(ticketId);
 
       if (!ticket) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: {
             code: 'NOT_FOUND',
-            message: `Ticket with ID "${req.params.id}" not found.`,
+            message: `Ticket with ID "${ticketId}" not found.`,
           },
         });
+        return;
       }
 
       res.json({
@@ -77,7 +80,7 @@ export class TicketController {
   /**
    * GET /tickets/stats/summary — Get aggregate statistics.
    */
-  async getStats(req, res, next) {
+  async getStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const stats = service.getStats();
 

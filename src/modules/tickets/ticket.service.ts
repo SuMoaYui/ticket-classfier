@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
-import { TicketRepository } from './ticket.repository.js';
+import { TicketRepository, type Ticket, type FindAllResult, type TicketStats, type TicketUpdates } from './ticket.repository.js';
 import { ticketQueue } from '../../services/queue/ticket.queue.js';
 import logger from '../../utils/logger.js';
+import type { CreateTicketInput, ListTicketsQuery } from './ticket.schema.js';
 
 const repo = new TicketRepository();
 
@@ -12,11 +13,8 @@ export class TicketService {
   /**
    * Create and classify a new ticket.
    * Flow: receive → LLM classify → apply rules → persist → return enriched ticket.
-   *
-   * @param {object} data - Validated ticket input (subject, body, customer_email, metadata)
-   * @returns {Promise<object>} Created and classified ticket
    */
-  async createTicket(data) {
+  async createTicket(data: CreateTicketInput): Promise<Ticket> {
     const ticketId = uuidv4();
 
     logger.info('Creating new ticket (Async Mode)', {
@@ -36,7 +34,7 @@ export class TicketService {
       department: 'general',
       status: 'pending',
       confidence: 0,
-      metadata: data.metadata || {},
+      metadata: (data.metadata as Record<string, unknown>) ?? {},
     });
 
     // Step 2: Enqueue the background job
@@ -51,37 +49,29 @@ export class TicketService {
 
   /**
    * Get a ticket by ID.
-   * @param {string} id
-   * @returns {object|null}
    */
-  getTicket(id) {
+  getTicket(id: string): Ticket | null {
     return repo.findById(id);
   }
 
   /**
    * List tickets with filters and pagination.
-   * @param {object} query - Filter/pagination options
-   * @returns {{ tickets: object[], total: number, limit: number, offset: number }}
    */
-  listTickets(query = {}) {
+  listTickets(query: Partial<ListTicketsQuery> = {}): FindAllResult {
     return repo.findAll(query);
   }
 
   /**
    * Update a ticket.
-   * @param {string} id
-   * @param {object} updates
-   * @returns {object|null}
    */
-  updateTicket(id, updates) {
+  updateTicket(id: string, updates: TicketUpdates): Ticket | null {
     return repo.update(id, updates);
   }
 
   /**
    * Get summary statistics.
-   * @returns {object}
    */
-  getStats() {
+  getStats(): TicketStats {
     return repo.getStats();
   }
 }

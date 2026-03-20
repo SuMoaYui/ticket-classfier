@@ -1,9 +1,16 @@
 import logger from '../../utils/logger.js';
+import type { ClassificationResult } from '../llm/mock-classifier.js';
+
+/** Department configuration. */
+interface DepartmentInfo {
+  name: string;
+  escalation: string;
+}
 
 /**
  * Known departments and their escalation contacts.
  */
-const DEPARTMENTS = {
+const DEPARTMENTS: Record<string, DepartmentInfo> = {
   billing: { name: 'Billing', escalation: 'billing-lead@company.com' },
   engineering: { name: 'Engineering', escalation: 'eng-oncall@company.com' },
   sales: { name: 'Sales', escalation: 'sales-manager@company.com' },
@@ -15,24 +22,45 @@ const DEPARTMENTS = {
 /**
  * Priority weights for SLA ordering.
  */
-const URGENCY_PRIORITY = {
+const URGENCY_PRIORITY: Record<string, number> = {
   critical: 4,
   high: 3,
   medium: 2,
   low: 1,
 };
 
+/** Enriched classification result after rules have been applied. */
+export interface EnrichedClassification extends ClassificationResult {
+  escalated?: boolean;
+  escalationReason?: string;
+  escalationContact?: string;
+  notifyOncall?: boolean;
+  oncallEmail?: string;
+  priorityScore: number;
+  departmentName?: string;
+  departmentEscalation?: string;
+  appliedRules: string[];
+}
+
+/** Ticket data passed to the rules engine. */
+export interface RuleTicketData {
+  subject?: string;
+  body?: string;
+  customer_email?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Apply business rules to the classification result.
  * Can escalate, override, or enrich the classification.
- *
- * @param {object} classification - LLM classification result
- * @param {object} ticket - Original ticket data (subject, body, customer_email)
- * @returns {object} Enriched classification with rules applied
  */
-export function applyDepartmentRules(classification, ticket) {
-  const result = { ...classification };
-  const appliedRules = [];
+export function applyDepartmentRules(classification: ClassificationResult, _ticket: RuleTicketData): EnrichedClassification {
+  const result: EnrichedClassification = {
+    ...classification,
+    priorityScore: 0,
+    appliedRules: [],
+  };
+  const appliedRules: string[] = [];
 
   // ─── Rule 1: Validate department ─────────────────────────────────────────
   if (!DEPARTMENTS[result.department]) {
@@ -72,7 +100,7 @@ export function applyDepartmentRules(classification, ticket) {
   // ─── Rule 5: Add SLA priority score ────────────────────────────────────
   const sentimentBoost = result.sentiment === 'angry' ? 1 : result.sentiment === 'frustrated' ? 0.5 : 0;
   result.priorityScore =
-    (URGENCY_PRIORITY[result.urgency] || 2) + sentimentBoost;
+    (URGENCY_PRIORITY[result.urgency] ?? 2) + sentimentBoost;
 
   // ─── Rule 6: Set department metadata ───────────────────────────────────
   const dept = DEPARTMENTS[result.department];
@@ -86,10 +114,15 @@ export function applyDepartmentRules(classification, ticket) {
   return result;
 }
 
+/** Department list item returned by getValidDepartments. */
+export interface DepartmentListItem extends DepartmentInfo {
+  id: string;
+}
+
 /**
  * Get the list of valid departments.
  */
-export function getValidDepartments() {
+export function getValidDepartments(): DepartmentListItem[] {
   return Object.entries(DEPARTMENTS).map(([key, value]) => ({
     id: key,
     ...value,

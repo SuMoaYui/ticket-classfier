@@ -1,11 +1,28 @@
 /**
+ * Shared classification result interface used by all LLM classifiers.
+ */
+export interface ClassificationResult {
+  urgency: string;
+  sentiment: string;
+  department: string;
+  confidence: number;
+  reasoning: string;
+}
+
+/** Extended result with metadata from the classifier facade. */
+export interface ClassificationResultWithMeta extends ClassificationResult {
+  classifiedBy: string;
+  classificationTimeMs: number;
+}
+
+/**
  * Mock LLM Classifier — keyword-based deterministic classifier.
  * Simulates LLM analysis for development and testing without API keys.
  */
 
 // ─── Keyword dictionaries ───────────────────────────────────────────────────
 
-const URGENCY_KEYWORDS = {
+const URGENCY_KEYWORDS: Record<string, string[]> = {
   critical: [
     'urgente', 'urgent', 'crítico', 'critical', 'caído', 'down',
     'emergencia', 'emergency', 'inmediatamente', 'immediately',
@@ -24,7 +41,7 @@ const URGENCY_KEYWORDS = {
   ],
 };
 
-const SENTIMENT_KEYWORDS = {
+const SENTIMENT_KEYWORDS: Record<string, string[]> = {
   angry: [
     'furioso', 'furious', 'indignado', 'inaceptable', 'unacceptable',
     'pésimo', 'terrible', 'horrible', 'estafa', 'incompetentes',
@@ -42,7 +59,7 @@ const SENTIMENT_KEYWORDS = {
   ],
 };
 
-const DEPARTMENT_KEYWORDS = {
+const DEPARTMENT_KEYWORDS: Record<string, string[]> = {
   billing: [
     'factura', 'invoice', 'cobro', 'charge', 'pago', 'payment',
     'reembolso', 'refund', 'precio', 'price', 'suscripción',
@@ -75,10 +92,21 @@ const DEPARTMENT_KEYWORDS = {
 
 // ─── Scoring helpers ────────────────────────────────────────────────────────
 
-function scoreText(text, keywords) {
+interface ScoreResult {
+  score: number;
+  matched: string[];
+}
+
+interface ClassifyResult {
+  key: string;
+  score: number;
+  matched: string[];
+}
+
+function scoreText(text: string, keywords: string[]): ScoreResult {
   const lower = text.toLowerCase();
   let score = 0;
-  const matched = [];
+  const matched: string[] = [];
   for (const kw of keywords) {
     if (lower.includes(kw)) {
       score++;
@@ -88,8 +116,8 @@ function scoreText(text, keywords) {
   return { score, matched };
 }
 
-function classifyByKeywords(text, dictionary, defaultValue) {
-  let best = { key: defaultValue, score: 0, matched: [] };
+function classifyByKeywords(text: string, dictionary: Record<string, string[]>, defaultValue: string): ClassifyResult {
+  let best: ClassifyResult = { key: defaultValue, score: 0, matched: [] };
   for (const [key, keywords] of Object.entries(dictionary)) {
     const result = scoreText(text, keywords);
     if (result.score > best.score) {
@@ -103,11 +131,8 @@ function classifyByKeywords(text, dictionary, defaultValue) {
 
 /**
  * Classify a ticket using keyword matching.
- * @param {string} subject - Ticket subject
- * @param {string} body - Ticket body
- * @returns {Promise<object>} Classification result
  */
-export async function classifyWithMock(subject, body) {
+export async function classifyWithMock(subject: string, body: string): Promise<ClassificationResult> {
   const fullText = `${subject} ${body}`;
 
   const urgency = classifyByKeywords(fullText, URGENCY_KEYWORDS, 'medium');
@@ -129,8 +154,8 @@ export async function classifyWithMock(subject, body) {
   };
 }
 
-function buildReasoning(urgency, sentiment, department) {
-  const parts = [];
+function buildReasoning(urgency: ClassifyResult, sentiment: ClassifyResult, department: ClassifyResult): string {
+  const parts: string[] = [];
 
   if (urgency.matched.length > 0) {
     parts.push(

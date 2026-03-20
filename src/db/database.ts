@@ -1,16 +1,16 @@
-import Database from 'better-sqlite3';
+import Database, { type Database as DatabaseType } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import config from '../config/index.js';
 import { runMigrations } from './migrations.js';
 
-let db = null;
+let db: DatabaseType | null = null;
 
 /**
  * Get or create the SQLite database connection (singleton).
  * Creates the data directory if it doesn't exist.
  */
-export function getDatabase() {
+export function getDatabase(): DatabaseType {
   if (db) return db;
 
   const dbPath = config.isTest
@@ -40,7 +40,7 @@ export function getDatabase() {
 /**
  * Close the database connection.
  */
-export function closeDatabase() {
+export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
@@ -50,7 +50,7 @@ export function closeDatabase() {
 /**
  * Reset the database singleton (for testing).
  */
-export function resetDatabase() {
+export function resetDatabase(): DatabaseType {
   closeDatabase();
   return getDatabase();
 }

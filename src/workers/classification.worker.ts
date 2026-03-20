@@ -10,10 +10,10 @@ const repo = new TicketRepository();
  * Background Worker for Ticket Classification
  * Listens to the queue, calls the LLM, and updates the database.
  */
-export function startClassificationWorker() {
+export function startClassificationWorker(): void {
   logger.info('Background Classification Worker started.');
 
-  ticketQueue.on('jobAdded', async (ticketId) => {
+  ticketQueue.on('jobAdded', async (ticketId: string) => {
     logger.debug(`Worker picked up job for ticket ${ticketId}`);
     const job = ticketQueue.getJob(ticketId);
     
@@ -23,7 +23,10 @@ export function startClassificationWorker() {
 
     try {
       // 1. Heavy LLM processing
-      const classification = await classifyTicket(payload.subject, payload.body);
+      const classification = await classifyTicket(
+        payload.subject as string,
+        payload.body as string
+      );
       
       // 2. Apply business rules
       const enriched = applyDepartmentRules(classification, payload);
@@ -36,9 +39,6 @@ export function startClassificationWorker() {
         status: enriched.escalated ? 'escalated' : 'open',
         confidence: enriched.confidence,
         reasoning: enriched.reasoning,
-        llm_raw_response: JSON.stringify(classification),
-        // Since sqlite repository 'update' method does not dynamically merge json on the fly, 
-        // we'll fetch existing metadata first.
       });
 
       // Fetch newly updated row, manipulate metadata and update again (SQLite limitation workaround)
@@ -49,9 +49,9 @@ export function startClassificationWorker() {
             classifiedBy: classification.classifiedBy,
             classificationTimeMs: classification.classificationTimeMs,
             priorityScore: enriched.priorityScore,
-            escalated: enriched.escalated || false,
-            escalationReason: enriched.escalationReason || null,
-            appliedRules: enriched.appliedRules || [],
+            escalated: enriched.escalated ?? false,
+            escalationReason: enriched.escalationReason ?? null,
+            appliedRules: enriched.appliedRules ?? [],
           };
           
           // Re-update the metadata column using a raw query bypassing repository limitations for simplicity
@@ -71,7 +71,8 @@ export function startClassificationWorker() {
       ticketQueue.completeJob(ticketId);
 
     } catch (error) {
-      logger.error(`Critical Error classifying ticket ${ticketId}`, { error: error.message });
+      const err = error as Error;
+      logger.error(`Critical Error classifying ticket ${ticketId}`, { error: err.message });
       // Fallback: Mark ticket as failed/manual review needed
       repo.update(ticketId, {
         status: 'open',
