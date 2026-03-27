@@ -44,12 +44,27 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     return;
   }
 
-  // Check against database
+  // Check against database using SHA-256 crypto hashes (Zero Domain Leakage)
   try {
     const db = getDatabase();
-    const record = db
+    // 1. Hash the incoming API Key (SHA-256)
+    const hashedKey = crypto.createHash('sha256').update(apiKey).digest('hex');
+
+    // 2. Query against secured hashed records
+    let record = db
       .prepare('SELECT * FROM api_keys WHERE key = ? AND active = 1')
-      .get(apiKey) as { name: string } | undefined;
+      .get(hashedKey) as { name: string } | undefined;
+
+    // 3. Fallback check for legacy unhashed keys (with security warning)
+    if (!record) {
+      record = db
+        .prepare('SELECT * FROM api_keys WHERE key = ? AND active = 1')
+        .get(apiKey) as { name: string } | undefined;
+      
+      if (record) {
+        logger.warn(`[SECURITY WARNING] Legacy plain-text API key used for '${record.name}'. Please migrate keys in SQLite to SHA-256!`);
+      }
+    }
 
     if (record) {
       req.apiKeyName = record.name;

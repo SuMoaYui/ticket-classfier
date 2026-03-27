@@ -16,12 +16,28 @@ export class AnthropicChatService {
   async generateReply(userMessage: string, contextPage: string): Promise<string> {
     // Si estamos en entorno sin API Key (Mock), simulamos la respuesta para no bloquear el desarrollo
     if (config.llmMode === 'mock' || !this.client) {
-      await new Promise(r => setTimeout(r, 600)); // Retraso natural
+      await new Promise(r => setTimeout(r, 800)); // Retraso natural
       
       if (userMessage.startsWith('__PROACTIVE__')) {
          return `¡Hola! Soy KIN. Veo que estás explorando la pestaña de *${contextPage}*. ¿En qué te puedo asesorar?`;
       }
-      return `¡Entendido! Soy KIN (Modo Simulación). Como sabes que estás en *${contextPage}*, registraré que dijiste: "${userMessage}".`;
+
+      const lowerMsg = userMessage.toLowerCase();
+      
+      if (lowerMsg.match(/(api key|clave api|token|configurar)/)) {
+        return 'La Clave API es un código de seguridad confidencial que autoriza la conexión entre tu App de escritorio y el Servidor. Al ingresarla en Ajustes, me conectaré a los servidores de Anthropic y activaré mis funciones de redes neuronales reales.';
+      }
+      if (lowerMsg.match(/(ticket|crear|urgencia|soporte)/)) {
+        return 'El sistema de tickets es el corazón de la App. Cuando creas un ticket interactuando a través del formulario, lo recojo en el backend y lo clasifico automáticamente (Urgencia, Sentimiento, Departamento) sin necesidad de intervención humana.';
+      }
+      if (lowerMsg.match(/(hola|saludos|kin|buenos)/)) {
+        return '¡Hola! Soy KIN, tu asistente de Inteligencia Activa. Actualmente opero de manera local en modo Demostración para enseñarte cómo funciona la plataforma. ¿Sobre qué área tienes dudas?';
+      }
+      if (lowerMsg.match(/(dashboard|panel|estadisticas|graficas)/)) {
+        return 'El Panel te ofrece una vista global de las métricas de clasificación en vivo. Puedes ver la carga de tickets por urgencia y departamento para tomar decisiones directivas.';
+      }
+
+      return `*(Modo Demostración)* Esa es una duda muy interesante respecto a *${contextPage}*. Para que yo pueda razonar y darte explicaciones sumamente complejas y precisas, necesito que el administrador habilite mi conexión total configurando la API Key en el lado del servidor.`;
     }
 
     const systemPrompt = `Eres KIN, el robot asistente conversacional exclusivo de KIN Smart Ticketing & Support. 

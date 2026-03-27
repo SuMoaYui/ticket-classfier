@@ -16,6 +16,9 @@ COPY src/ ./src/
 # Compile TypeScript to JavaScript
 RUN npm run build
 
+# Remove development dependencies to slash image size
+RUN npm prune --omit=dev
+
 # Stage 2: Production image
 FROM node:20-alpine
 

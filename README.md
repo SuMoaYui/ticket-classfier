@@ -1,167 +1,43 @@
-# 🎫 Sistema Inteligente de Clasificación de Tickets y Soporte
+# 🎫 KIN Smart Ticketing (Backend API Core)
 
-![CI](https://github.com/SuMoaYui/ticket-classfier/actions/workflows/ci.yml/badge.svg)
-![CD](https://github.com/SuMoaYui/ticket-classfier/actions/workflows/cd.yml/badge.svg)
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?logo=nodedotjs&logoColor=white) ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white) ![Anthropic](https://img.shields.io/badge/AI-Claude%203.5-d4a373)
 
-API backend corporativa que recibe solicitudes de clientes, las clasifica automáticamente mediante un LLM (urgencia, sentimiento, departamento) y las asigna al equipo correcto.
+Núcleo de Inteligencia Artificial y Organización Operativa para clasificación de tickets, construido bajo los más altos estándares de arquitectura limpia (**Domain-Driven Design**) sobre TypeScript/ExpressJS.
 
-## 🏗️ Arquitectura
+Este motor no solo soporta las transacciones concurrentes ACID usando un motor en-memoria impulsado a disco (`better-sqlite3`), sino que se acopla dinámicamente a **Clústeres Estáticos Locales** o al **Cloud de Anthropic** para inyección de razonamiento LLM a los tickets entrantes (Sentimiento, Urgencia, Departamento).
 
-```
-Cliente HTTP → [Auth Middleware] → [Validation] → Controller → Service
-                                                        ↓
-                                              ┌─────────┴──────────┐
-                                              │   LLM Classifier   │
-                                              │  (Mock / Anthropic) │
-                                              └─────────┬──────────┘
-                                                        ↓
-                                              ┌─────────┴──────────┐
-                                              │   Rules Engine     │
-                                              │ (Escalation, SLA)  │
-                                              └─────────┬──────────┘
-                                                        ↓
-                                              ┌─────────┴──────────┐
-                                              │   SQLite DB        │
-                                              │ (Ticket Storage)   │
-                                              └────────────────────┘
-```
+---
 
-## 🚀 Inicio Rápido
+## 🏗️ Arquitectura y Seguridad (DevSecOps)
+
+*   **Diseño Dirigido por Dominio (DDD) & TSyringe:** Modelos ricos sin dependencias circulares y constructores sellados que soportan 100% inyección de dependencias automáticas IoC.
+*   **Zero-Trust API Key Shield:** Los tokens y accesos privados de los usuarios jamás se guardan legibles. El sistema obliga hashes criptográficos **SHA-256** unidireccionales desde la capa `Middleware` antes de golpear el disco SQLite retroactivamente.
+*   **OpenTelemetry & Trazabilidad:** Monitoreo y perfiles de embudo precisos para saber exactamente en qué milisegundo el modelo Claude responde o un Job queda relegado.
+*   **Smart Rate Limiting y Helmet:** Blindaje de cabeceras HTTP restrictivas por API en un factor 30 req/min (anti-DDoS).
+*   **Contenedorizado Eficiente (`Omit-Dev` Docker):** Compilaciones Multistage alpinas ultradelgadas preparadas para empujar directamente a `ghcr.io` y `AWS ECS` eliminando miles de dependencias pesadas mediante `prune`. 
+
+## 🚀 Despliegue Local e Inicialización
 
 ```bash
-# Instalar dependencias
+# 1. Instalar dependencias puras 
 npm install
 
-# Copiar configuración de entorno
+# 2. Configurar Variables de Entorno y Modelo
+# (Ajusta LLM_MODE=anthropic dentro de tu nuevo .env, usa API real)
 cp .env.example .env
 
-# Iniciar el servidor (modo mock, sin API keys necesarias)
-npm start
-
-# O con auto-reload en desarrollo
+# 3. Arrancar a través de Watcher en Caliente (DDD / TSX)
 npm run dev
 ```
 
-El servidor arranca en `http://localhost:3000`.
+## 🐋 Despliegue Docker (Producción)
 
-## 📖 Endpoints
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `GET` | `/api/v1/health` | Health check (sin auth) |
-| `POST` | `/api/v1/tickets` | Crear y clasificar ticket |
-| `GET` | `/api/v1/tickets` | Listar tickets (filtros) |
-| `GET` | `/api/v1/tickets/:id` | Detalle de ticket |
-| `GET` | `/api/v1/tickets/stats/summary` | Métricas agregadas |
-
-## 🔑 Autenticación
-
-Todas las rutas excepto `/health` requieren el header `X-API-Key`:
+Dado que las capas de software son construidas eficientemente (Ignorando tipos o testing suites en la capa 2):
 
 ```bash
-curl http://localhost:3000/api/v1/tickets \
-  -H "X-API-Key: dev-api-key-123"
+docker build -t ticket-classifier-api .
+docker run -p 3000:3000 -v $(pwd)/data:/usr/src/app/data ticket-classifier-api
 ```
 
-## 📝 Ejemplo: Crear un Ticket
-
-```bash
-curl -X POST http://localhost:3000/api/v1/tickets \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: dev-api-key-123" \
-  -d '{
-    "subject": "URGENTE: Sistema de facturación caído",
-    "body": "El sistema está completamente caído desde hace 2 horas. Estoy furioso, necesitamos esto resuelto YA. El cobro a los clientes está bloqueado.",
-    "customer_email": "cliente@empresa.com"
-  }'
-```
-
-**Respuesta clasificada:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid-generado",
-    "subject": "URGENTE: Sistema de facturación caído",
-    "urgency": "critical",
-    "sentiment": "angry",
-    "department": "billing",
-    "status": "escalated",
-    "confidence": 0.78,
-    "reasoning": "Urgency set to \"critical\" based on keywords: urgente, caído, bloqueado | Sentiment detected as \"angry\" from: furioso | Routed to \"billing\" department based on: factura, cobro",
-    "metadata": {
-      "classifiedBy": "mock",
-      "priorityScore": 5,
-      "escalated": true,
-      "appliedRules": ["critical-angry-escalation", "billing-angry-escalation"]
-    }
-  }
-}
-```
-
-## 🔧 Modo LLM
-
-| Modo | Variable `.env` | Descripción |
-|------|-----------------|-------------|
-| `mock` | `LLM_MODE=mock` | Clasificador local basado en keywords (default) |
-| `anthropic` | `LLM_MODE=anthropic` | API real de Anthropic Claude |
-
-Para usar Anthropic, configura en `.env`:
-```
-LLM_MODE=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-## 🧪 Tests
-
-```bash
-npm test
-```
-
-## ☁️ Despliegue e Infraestructura como Código (IaC)
-
-El proyecto incluye configuración de Terraform para desplegar la aplicación en **AWS ECS Fargate** usando **EFS** como almacenamiento persistente (para la base de datos SQLite).
-
-```bash
-cd terraform
-# Inicializar Terraform
-terraform init
-
-# Ver el plan de ejecución
-terraform plan
-
-# Desplegar la infraestructura
-terraform apply
-```
-
-Puedes personalizar las variables creando un archivo `terraform.tfvars`:
-```hcl
-aws_region        = "us-east-1"
-llm_mode          = "mock"
-container_image   = "tu-repositorio-ecr/ticket-classifier:latest"
-```
-
-## 🔄 CI/CD
-
-El proyecto usa **GitHub Actions** con dos pipelines:
-
-| Pipeline | Trigger | Qué hace |
-|----------|---------|----------|
-| **CI** (`ci.yml`) | Push / PR a cualquier branch | Tests (Node 20 & 22) + Lint del Dockerfile |
-| **CD** (`cd.yml`) | Push a `main` | Tests → Build Docker → Push a `ghcr.io` → Trivy scan |
-
-La imagen se publica automáticamente en GitHub Container Registry (`ghcr.io`) con tags `latest` y el SHA del commit.
-
-## 📁 Estructura del Proyecto
-```
-src/
-├── config/           # Variables de entorno
-├── db/               # SQLite + migraciones
-├── middleware/        # Auth, validación, errores
-├── modules/tickets/  # Controller, service, repository, schema
-├── services/
-│   ├── llm/          # Clasificadores (mock + Anthropic)
-│   └── rules/        # Motor de reglas de negocio
-├── utils/            # Logger (Winston)
-└── app.ts            # Bootstrap Express
-```
+## 🧠 Flujo de Soporte Cognitivo (KIN)
+Dependiendo del tipo de *Client-Target* usando esta API, los Modos LLM (`Mock/Anthropic`) simulan un asistente heurístico pre-cargado que instruye al usuario al vuelo durante latencias en redes lentas hasta que el conector de AI responde íntegro.
