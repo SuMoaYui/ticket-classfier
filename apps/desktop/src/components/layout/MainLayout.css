@@ -1,0 +1,16 @@
+.mainLayout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+.mainLayout__content {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--topbar-height);
+  flex: 1;
+  padding: 28px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  min-height: calc(100vh - var(--topbar-height));
+  transition: background-color var(--transition-normal);
+}

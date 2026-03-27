@@ -1,0 +1,97 @@
+/* ─── Create Ticket Page ──────────────────────────────────────────────────── */
+
+.createTicketPage {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.createTicket__form {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── Field ──────────────────────────────────────────────────────────────── */
+
+.createTicket__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.createTicket__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.createTicket__input,
+.createTicket__textarea {
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.createTicket__input:focus,
+.createTicket__textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.createTicket__input--error {
+  border-color: var(--color-critical) !important;
+  box-shadow: 0 0 0 3px var(--color-critical-bg) !important;
+}
+
+.createTicket__textarea {
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.5;
+}
+
+.createTicket__error {
+  font-size: 12px;
+  color: var(--color-critical);
+  font-weight: 500;
+}
+
+.createTicket__charCount {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+
+/* ─── Submit Button ──────────────────────────────────────────────────────── */
+
+.createTicket__submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  margin-top: 8px;
+}
+
+.createTicket__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.createTicket__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

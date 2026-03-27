@@ -1,0 +1,31 @@
+appId: com.ticketclassifier.desktop
+productName: Ticket Classifier
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist
+  - dist-electron
+
+linux:
+  category: Utility
+  target:
+    - target: AppImage
+    - target: pacman
+  artifactName: "${productName}-Linux-${version}-${arch}.${ext}"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "${productName}-Setup-${version}-x64.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
