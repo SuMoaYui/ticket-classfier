@@ -5,6 +5,7 @@ import config from './config/index.js';
 import { getDatabase, closeDatabase } from './db/database.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import ticketRoutes from './modules/tickets/ticket.routes.js';
+import chatRoutes from './modules/chat/chat.routes.js';
 import logger from './utils/logger.js';
 import { startClassificationWorker } from './workers/classification.worker.js';
 import helmet from 'helmet';
@@ -85,8 +86,10 @@ const apiLimiter = rateLimit({
 });
 if (!config.isTest) {
   app.use('/api/v1/tickets', apiLimiter, ticketRoutes);
+  app.use('/api/v1/chat', apiLimiter, chatRoutes);
 } else {
   app.use('/api/v1/tickets', ticketRoutes);
+  app.use('/api/v1/chat', chatRoutes);
 }
 
 // ─── 404 handler ────────────────────────────────────────────────────────────
