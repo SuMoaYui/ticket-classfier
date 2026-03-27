@@ -3,18 +3,22 @@ import { TicketService } from './ticket.service.js';
 import { listTicketsQuerySchema, type CreateTicketInput } from './ticket.schema.js';
 import logger from '../../utils/logger.js';
 
-const service = new TicketService();
+import { injectable, inject } from 'tsyringe';
 
 /**
  * Ticket Controller — HTTP handler layer.
  */
+@injectable()
 export class TicketController {
+  constructor(
+    @inject(TicketService) private service: TicketService
+  ) {}
   /**
    * POST /tickets — Create and classify a new ticket.
    */
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const ticket = await service.createTicket(req.validatedBody as CreateTicketInput);
+      const ticket = await this.service.createTicket(req.validatedBody as CreateTicketInput);
 
       res.status(202).json({
         success: true,
@@ -32,7 +36,7 @@ export class TicketController {
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const query = listTicketsQuerySchema.parse(req.query);
-      const result = service.listTickets(query);
+      const result = this.service.listTickets(query);
 
       res.json({
         success: true,
@@ -55,7 +59,7 @@ export class TicketController {
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const ticketId = req.params.id as string;
-      const ticket = service.getTicket(ticketId);
+      const ticket = this.service.getTicket(ticketId);
 
       if (!ticket) {
         res.status(404).json({
@@ -82,7 +86,7 @@ export class TicketController {
    */
   async getStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const stats = service.getStats();
+      const stats = this.service.getStats();
 
       res.json({
         success: true,

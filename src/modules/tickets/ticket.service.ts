@@ -1,15 +1,21 @@
+import 'reflect-metadata';
+import { injectable, inject } from 'tsyringe';
 import { v4 as uuidv4 } from 'uuid';
-import { TicketRepository, type Ticket, type FindAllResult, type TicketStats, type TicketUpdates } from './ticket.repository.js';
+import { TicketRepository, type FindAllResult, type TicketStats, type TicketUpdates } from './ticket.repository.js';
+import { Ticket } from './ticket.entity.js';
 import { ticketQueue } from '../../services/queue/ticket.queue.js';
 import logger from '../../utils/logger.js';
 import type { CreateTicketInput, ListTicketsQuery } from './ticket.schema.js';
 
-const repo = new TicketRepository();
-
 /**
  * Ticket Service — orchestrates classification, rule application, and persistence.
  */
+@injectable()
 export class TicketService {
+  constructor(
+    @inject(TicketRepository) private repo: TicketRepository
+  ) {}
+  
   /**
    * Create and classify a new ticket.
    * Flow: receive → LLM classify → apply rules → persist → return enriched ticket.
@@ -24,7 +30,7 @@ export class TicketService {
     });
 
     // Step 1: Persist the ticket in 'pending' state
-    const ticket = repo.create({
+    const ticket = this.repo.create({
       id: ticketId,
       subject: data.subject,
       body: data.body,
@@ -51,27 +57,27 @@ export class TicketService {
    * Get a ticket by ID.
    */
   getTicket(id: string): Ticket | null {
-    return repo.findById(id);
+    return this.repo.findById(id);
   }
 
   /**
    * List tickets with filters and pagination.
    */
   listTickets(query: Partial<ListTicketsQuery> = {}): FindAllResult {
-    return repo.findAll(query);
+    return this.repo.findAll(query);
   }
 
   /**
    * Update a ticket.
    */
   updateTicket(id: string, updates: TicketUpdates): Ticket | null {
-    return repo.update(id, updates);
+    return this.repo.update(id, updates);
   }
 
   /**
    * Get summary statistics.
    */
   getStats(): TicketStats {
-    return repo.getStats();
+    return this.repo.getStats();
   }
 }

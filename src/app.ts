@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+import './utils/tracing.js';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import config from './config/index.js';
 import { getDatabase, closeDatabase } from './db/database.js';

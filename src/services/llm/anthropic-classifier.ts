@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { trace } from '@opentelemetry/api';
 import config from '../../config/index.js';
 import logger from '../../utils/logger.js';
 import type { ClassificationResult } from './mock-classifier.js';
@@ -51,6 +52,8 @@ interface AnthropicParsedResponse {
   reasoning?: string;
 }
 
+const tracer = trace.getTracer('llm-service');
+
 /**
  * Classify a ticket using Anthropic Claude.
  */
@@ -69,41 +72,51 @@ Body: ${body}
     subjectPreview: subject.substring(0, 50),
   });
 
-  try {
-    const response = await anthropic.messages.create({
-      model: config.anthropic.model,
-      max_tokens: 512,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
-    });
+  return await tracer.startActiveSpan('Anthropic-LLM-Classify', async (span) => {
+    try {
+      const response = await anthropic.messages.create({
+        model: config.anthropic.model,
+        max_tokens: 512,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }],
+      });
 
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-    logger.debug('Anthropic raw response', { text });
+      const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      logger.debug('Anthropic raw response', { text });
 
-    // Parse JSON from response
-    const parsed: AnthropicParsedResponse = JSON.parse(text.trim());
+      // Parse JSON from response
+      const parsed: AnthropicParsedResponse = JSON.parse(text.trim());
 
-    // Validate and normalize
-    return {
-      urgency: normalizeEnum(parsed.urgency, ['critical', 'high', 'medium', 'low'], 'medium'),
-      sentiment: normalizeEnum(parsed.sentiment, ['angry', 'frustrated', 'neutral', 'satisfied'], 'neutral'),
-      department: normalizeEnum(parsed.department, ['billing', 'engineering', 'sales', 'support', 'hr', 'general'], 'general'),
-      confidence: typeof parsed.confidence === 'number' ? Math.round(parsed.confidence * 100) / 100 : 0.5,
-      reasoning: parsed.reasoning ?? 'No reasoning provided.',
-    };
-  } catch (error) {
-    const err = error as Error;
-    logger.error('Anthropic classification failed', { error: err.message });
+      // Validate and normalize
+      const result = {
+        urgency: normalizeEnum(parsed.urgency, ['critical', 'high', 'medium', 'low'], 'medium'),
+        sentiment: normalizeEnum(parsed.sentiment, ['angry', 'frustrated', 'neutral', 'satisfied'], 'neutral'),
+        department: normalizeEnum(parsed.department, ['billing', 'engineering', 'sales', 'support', 'hr', 'general'], 'general'),
+        confidence: typeof parsed.confidence === 'number' ? Math.round(parsed.confidence * 100) / 100 : 0.5,
+        reasoning: parsed.reasoning ?? 'No reasoning provided.',
+      };
 
-    // Return a safe fallback
-    return {
-      urgency: 'medium',
-      sentiment: 'neutral',
-      department: 'general',
-      confidence: 0.0,
-      reasoning: `Classification failed: ${err.message}. Defaulting to neutral values.`,
-    };
-  }
+      span.setAttribute('ticket.urgency', result.urgency);
+      span.setAttribute('ticket.sentiment', result.sentiment);
+      span.end();
+      return result;
+    } catch (error) {
+      const err = error as Error;
+      logger.error('Anthropic classification failed', { error: err.message });
+      
+      span.recordException(err);
+      span.end();
+
+      // Return a safe fallback
+      return {
+        urgency: 'medium',
+        sentiment: 'neutral',
+        department: 'general',
+        confidence: 0.0,
+        reasoning: `Classification failed: ${err.message}. Defaulting to neutral values.`,
+      };
+    }
+  });
 }
 
 function normalizeEnum(value: string | undefined, allowed: string[], fallback: string): string {

@@ -1,23 +1,7 @@
+import { injectable } from 'tsyringe';
 import { getDatabase } from '../../db/database.js';
 import type { ListTicketsQuery } from './ticket.schema.js';
-
-/** Represents a ticket row as stored in the database. */
-export interface Ticket {
-  id: string;
-  subject: string;
-  body: string;
-  customer_email: string;
-  urgency: string;
-  sentiment: string;
-  department: string;
-  status: string;
-  confidence: number;
-  reasoning: string;
-  llm_raw_response: string;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
+import { Ticket } from './ticket.entity.js';
 
 /** Raw ticket row from SQLite (metadata is a JSON string). */
 interface TicketRow {
@@ -89,6 +73,7 @@ export interface TicketUpdates {
 /**
  * Ticket Repository — data access layer for the tickets table.
  */
+@injectable()
 export class TicketRepository {
   /**
    * Create a new ticket record.
@@ -264,10 +249,10 @@ export class TicketRepository {
   // ─── Private helpers ──────────────────────────────────────────────────────
 
   private _deserialize(row: TicketRow): Ticket {
-    return {
+    return new Ticket({
       ...row,
       metadata: row.metadata ? JSON.parse(row.metadata) as Record<string, unknown> : {},
-    };
+    });
   }
 
   private _toMap(rows: Array<Record<string, unknown>>, keyField: string): Record<string, number> {

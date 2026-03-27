@@ -4,8 +4,10 @@ import { authenticate } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import { createTicketSchema } from './ticket.schema.js';
 
+import { container } from 'tsyringe';
+
 const router = Router();
-const controller = new TicketController();
+const controller = container.resolve(TicketController);
 
 // All ticket routes require authentication
 router.use(authenticate);

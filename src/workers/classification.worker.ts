@@ -44,7 +44,7 @@ export function startClassificationWorker(): void {
       // Fetch newly updated row, manipulate metadata and update again (SQLite limitation workaround)
       const existingDbRow = repo.findById(ticketId);
       if (existingDbRow) {
-          existingDbRow.metadata = {
+          const updatedMetadata = {
             ...existingDbRow.metadata,
             classifiedBy: classification.classifiedBy,
             classificationTimeMs: classification.classificationTimeMs,
@@ -58,7 +58,7 @@ export function startClassificationWorker(): void {
           const { getDatabase } = await import('../db/database.js');
           const db = getDatabase();
           db.prepare('UPDATE tickets SET metadata = ? WHERE id = ?').run(
-              JSON.stringify(existingDbRow.metadata),
+              JSON.stringify(updatedMetadata),
               ticketId
           );
       }
