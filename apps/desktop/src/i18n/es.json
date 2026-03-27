@@ -136,11 +136,14 @@
     "connectionFailed": "Error de conexión"
   },
   "chatbot": {
-    "title": "Asistente IA",
-    "placeholder": "Pregúntame lo que quieras sobre la app...",
+    "title": "Asistente KIN",
+    "placeholder": "Pregúntale a KIN lo que quieras...",
     "send": "Enviar",
-    "greeting": "¡Hola! Soy tu asistente IA. ¿Cómo puedo ayudarte con Ticket Classifier?",
-    "thinking": "Pensando..."
+    "greeting": "¡Hola! Soy KIN, tu asistente de IA. ¿Cómo puedo ayudarte con Ticket Classifier?",
+    "thinking": "Pensando...",
+    "errorMessage": "Lo siento, no pude procesar tu solicitud. Intenta de nuevo.",
+    "mockMode": "(Modo Demo) Conecta la Clave API para funciones completas de IA.",
+    "clearChat": "Limpiar conversación"
   },
   "common": {
     "save": "Guardar",
@@ -178,8 +181,17 @@
   },
   "statusLevels": {
     "pending": "Pendiente",
+    "open": "Abierto",
     "classified": "Clasificado",
     "escalated": "Escalado",
     "resolved": "Resuelto"
+  },
+  "errors": {
+    "networkError": "No se pudo conectar al servidor. Verifica tu conexión.",
+    "timeout": "La solicitud expiró. Intenta de nuevo.",
+    "unauthorized": "La sesión expiró. Inicia sesión nuevamente.",
+    "forbidden": "No tienes permiso para realizar esta acción.",
+    "serverError": "Ocurrió un error inesperado. Intenta más tarde.",
+    "rateLimited": "Demasiadas solicitudes. Espera un momento."
   }
 }

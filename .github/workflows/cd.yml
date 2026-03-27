@@ -13,7 +13,6 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Gate: only deploy if tests pass
   test:
     name: 🧪 Run Tests First
     runs-on: ubuntu-latest
@@ -23,9 +22,13 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
       - run: npm ci
+        working-directory: apps/api
       - run: npm run build
+        working-directory: apps/api
       - run: npm test
+        working-directory: apps/api
 
   build-and-push:
     name: 🚀 Build & Push Image
@@ -58,7 +61,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: apps/api
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -87,7 +90,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: security-scan
     environment: production
-    # Solo ejecutar si se habilita la variable de repositorio en GitHub
     if: ${{ vars.ENABLE_AWS_DEPLOY == 'true' }}
 
     steps:

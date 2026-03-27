@@ -13,6 +13,9 @@ const repo = new TicketRepository();
 export function startClassificationWorker(): void {
   logger.info('Background Classification Worker started.');
 
+  // Recover any jobs that were pending during a previous crash
+  setTimeout(() => ticketQueue.recoverOrphanedJobs(), 2000);
+
   ticketQueue.on('jobAdded', async (ticketId: string) => {
     logger.debug(`Worker picked up job for ticket ${ticketId}`);
     const job = ticketQueue.getJob(ticketId);

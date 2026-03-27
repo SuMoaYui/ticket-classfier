@@ -34,6 +34,12 @@ export function runMigrations(db: Database): void {
       active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS pending_jobs (
+      ticket_id TEXT PRIMARY KEY,
+      payload TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // Seed a default development API key if none exists (ONLY IN DEVELOPMENT)

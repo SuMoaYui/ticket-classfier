@@ -51,7 +51,7 @@ Tu personalidad es amable, altamente inteligente, robótica pero cálida, con re
         model: config.anthropic.model,
         max_tokens: 512,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
+        messages: [{ role: 'user', content: `<user_message>${userMessage}</user_message>` }],
       });
       return response.content[0]?.type === 'text' ? response.content[0].text : 'Sin respuesta procesable.';
     } catch (error) {

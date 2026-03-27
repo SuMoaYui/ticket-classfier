@@ -136,11 +136,14 @@
     "connectionFailed": "Connection failed"
   },
   "chatbot": {
-    "title": "AI Assistant",
-    "placeholder": "Ask me anything about the app...",
+    "title": "KIN Assistant",
+    "placeholder": "Ask KIN anything about the app...",
     "send": "Send",
-    "greeting": "Hi! I'm your AI assistant. How can I help you with Ticket Classifier?",
-    "thinking": "Thinking..."
+    "greeting": "Hi! I'm KIN, your AI assistant. How can I help you with Ticket Classifier?",
+    "thinking": "Thinking...",
+    "errorMessage": "Sorry, I couldn't process your request. Please try again.",
+    "mockMode": "(Demo Mode) Connect API Key for full AI capabilities.",
+    "clearChat": "Clear conversation"
   },
   "common": {
     "save": "Save",
@@ -178,8 +181,17 @@
   },
   "statusLevels": {
     "pending": "Pending",
+    "open": "Open",
     "classified": "Classified",
     "escalated": "Escalated",
     "resolved": "Resolved"
+  },
+  "errors": {
+    "networkError": "Could not connect to the server. Please check your connection.",
+    "timeout": "The request timed out. Please try again.",
+    "unauthorized": "Session expired. Please sign in again.",
+    "forbidden": "You don't have permission to perform this action.",
+    "serverError": "An unexpected error occurred. Please try again later.",
+    "rateLimited": "Too many requests. Please wait a moment."
   }
 }

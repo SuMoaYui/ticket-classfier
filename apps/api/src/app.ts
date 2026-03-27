@@ -8,6 +8,9 @@ import ticketRoutes from './modules/tickets/ticket.routes.js';
 import chatRoutes from './modules/chat/chat.routes.js';
 import logger from './utils/logger.js';
 import { startClassificationWorker } from './workers/classification.worker.js';
+import { setupSwagger } from './middleware/swagger.js';
+import { handleTokenExchange, hybridAuth } from './middleware/jwt-auth.js';
+import { authenticate } from './middleware/auth.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -17,7 +20,12 @@ const app = express();
 // ─── Security & Reliability Middleware ──────────────────────────────────────
 app.set('trust proxy', 1); // Trust first proxy for correct IP logging/rate limiting
 app.use(helmet()); // Secure HTTP headers
-app.use(cors({ origin: config.isProd ? 'https://your-frontend-domain.com' : '*' })); // CORS configuration
+
+// CORS — reads allowed origins from env (comma-separated) or allows all in dev
+const corsOrigin = config.isProd
+  ? config.allowedOrigins.split(',').map(o => o.trim())
+  : '*';
+app.use(cors({ origin: corsOrigin }));
 
 // Global rate limiting for generic endpoints
 const globalLimiter = rateLimit({
@@ -75,6 +83,12 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
   }
 });
 
+// ─── API Documentation (Swagger UI) ─────────────────────────────────────────
+setupSwagger(app);
+
+// ─── JWT Token Exchange Endpoint ───────────────────────────────────────────
+app.post('/api/v1/auth/token', authenticate, handleTokenExchange);
+
 // ─── API routes ─────────────────────────────────────────────────────────────
 // Stricter rate limiting for ticket creation/endpoints
 const apiLimiter = rateLimit({
@@ -120,6 +134,7 @@ if (!config.isTest) {
     logger.info(`📋 LLM Mode: ${config.llmMode}`);
     logger.info(`🌍 Environment: ${config.nodeEnv}`);
     logger.info(`📖 Health: http://localhost:${config.port}/api/v1/health`);
+    logger.info(`📚 Docs:   http://localhost:${config.port}/api/docs`);
   });
 
   // Graceful shutdown
